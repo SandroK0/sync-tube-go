@@ -20,13 +20,13 @@ function App() {
 
   const sendTest = () => {
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ eventType: "test", data: "Hello from React!" }));
+      ws.send(JSON.stringify({ eventType: "global", data: "global message wassup people" }));
     }
   };
 
   const sendFoo = () => {
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ eventType: "foo", data: "Hello from React!" }));
+      ws.send(JSON.stringify({ eventType: "client", data: "client message" }));
     }
   };
 
