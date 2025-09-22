@@ -1,10 +1,10 @@
-package main
+package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 
+	"github.com/SandroK0/sync-tube-go/backend/entities"
 	"github.com/gorilla/websocket"
 )
 
@@ -14,27 +14,24 @@ type Event struct {
 }
 
 func NewEvent(msg []byte) (*Event, error) {
-
 	var event Event
 	if err := json.Unmarshal(msg, &event); err != nil {
-		return nil, fmt.Errorf("failed to parse JSON: %v", err)
+		return nil, err
 	}
-
 	return &event, nil
 }
 
 func HandleEvents(event Event, ws *websocket.Conn) {
-
 	switch event.EventType {
 	case "client":
-		msg, err := NewClientMessage(ws, []byte(event.Data))
+		msg, err := entities.NewClientMessage(ws, []byte(event.Data))
 		if err != nil {
 			log.Println(err)
 			return
 		}
 		Messages <- msg
 	case "global":
-		msg, err := NewBroadcastMessage([]byte(event.Data))
+		msg, err := entities.NewBroadcastMessage([]byte(event.Data))
 		if err != nil {
 			log.Println(err)
 			return
