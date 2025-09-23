@@ -9,8 +9,13 @@ import (
 )
 
 type Event struct {
-	EventType string `json:"eventType"`
-	Data      string `json:"data"`
+	EventType string          `json:"eventType"`
+	Data      json.RawMessage `json:"data"`
+}
+
+type JoinEventData struct {
+	RoomName string `json:"roomName"`
+	Username string `json:"username"`
 }
 
 func NewEvent(msg []byte) (*Event, error) {
@@ -23,15 +28,29 @@ func NewEvent(msg []byte) (*Event, error) {
 
 func HandleEvents(event Event, ws *websocket.Conn) {
 	switch event.EventType {
-	case "client":
-		msg, err := entities.NewClientMessage(ws, []byte(event.Data))
-		if err != nil {
-			log.Println(err)
+	case "join":
+
+		var joinData JoinEventData
+		if err := json.Unmarshal(event.Data, &joinData); err != nil {
+			log.Println("Error unmarshaling join event:", err)
 			return
 		}
-		Messages <- msg
-	case "global":
-		msg, err := entities.NewBroadcastMessage([]byte(event.Data))
+
+		if joinData.RoomName == "" || joinData.Username == "" {
+			log.Println("Missing roomName or username in join event")
+			return
+		}
+
+		user := entities.NewUser(joinData.Username, ws)
+		room, exists := Rooms[joinData.RoomName]
+		if !exists {
+			log.Println("Room not found:", joinData.RoomName)
+			return
+		}
+
+		room.AddUser(user)
+
+		msg, err := entities.NewClientMessage(ws, []byte("Joined"))
 		if err != nil {
 			log.Println(err)
 			return

@@ -9,7 +9,15 @@ import (
 	"github.com/SandroK0/sync-tube-go/backend/entities"
 )
 
-func JoinHandler(w http.ResponseWriter, r *http.Request) {
+func GetRoomsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	WriteJson(Rooms, w)
+}
+
+func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -42,23 +50,5 @@ func JoinHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		Rooms[roomName] = &entities.Room{Name: roomName}
 		WriteJson(`{"message": "Room created"}`, w)
-	}
-}
-
-func RoomsHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	WriteJson(Rooms, w)
-}
-
-func WriteJson(data any, w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
-	switch v := data.(type) {
-	case string:
-		w.Write([]byte(v))
-	default:
-		json.NewEncoder(w).Encode(v)
 	}
 }
