@@ -15,10 +15,10 @@ const (
 )
 
 type Message struct {
-	Type    MessageType
-	Client  *websocket.Conn // For client-specific messages
-	RoomID  string          // For room-specific messages
-	Content []byte
+	Type     MessageType
+	Client   *websocket.Conn // For client-specific messages
+	RoomName string          // For room-specific messages
+	Content  []byte
 }
 
 func NewClientMessage(client *websocket.Conn, content []byte) (*Message, error) {
@@ -32,14 +32,14 @@ func NewClientMessage(client *websocket.Conn, content []byte) (*Message, error) 
 	}, nil
 }
 
-func NewRoomMessage(roomID string, content []byte) (*Message, error) {
-	if roomID == "" {
+func NewRoomMessage(roomName string, content []byte) (*Message, error) {
+	if roomName == "" {
 		return nil, errors.New("roomID cannot be empty")
 	}
 	return &Message{
-		Type:    RoomBroadcast,
-		RoomID:  roomID,
-		Content: content,
+		Type:     RoomBroadcast,
+		RoomName: roomName,
+		Content:  content,
 	}, nil
 }
 

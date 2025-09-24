@@ -67,7 +67,20 @@ func HandleMessages() {
 				delete(Clients, msg.Client)
 			}
 		case entities.RoomBroadcast:
-			// TODO: Implement later
+			room, exists := Rooms[msg.RoomName]
+			if !exists {
+				log.Println("Room not found:", msg.RoomName)
+				return
+			}
+
+			for _, user := range room.Users {
+				err := user.Conn.WriteMessage(websocket.TextMessage, msg.Content)
+				if err != nil {
+					log.Println("Write error:", err)
+					user.Conn.Close()
+					delete(Clients, user.Conn)
+				}
+			}
 		}
 
 		log.Println(string(msg.Content))
