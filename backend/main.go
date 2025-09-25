@@ -13,7 +13,6 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/rooms", api.GetRoomsHandler)
-	mux.HandleFunc("/rooms/create", api.CreateRoomHandler)
 
 	mux.HandleFunc("/ws", api.HandleConnections)
 	go api.HandleMessages()

@@ -5,6 +5,10 @@ type Room struct {
 	Users []*User
 }
 
+func NewRoom(roomName string) *Room {
+	return &Room{Name: roomName}
+}
+
 func (r *Room) AddUser(user *User) {
 	r.Users = append(r.Users, user)
 }

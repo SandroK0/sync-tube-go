@@ -4,14 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/SandroK0/sync-tube-go/backend/entities"
 	"github.com/gorilla/websocket"
-)
-
-var (
-	Clients  = make(map[*websocket.Conn]bool)
-	Messages = make(chan *entities.Message)
-	Rooms    = make(map[string]*entities.Room)
 )
 
 var upgrader = websocket.Upgrader{
@@ -50,7 +43,7 @@ func HandleMessages() {
 		msg := <-Messages
 
 		switch msg.Type {
-		case entities.GlobalBroadcast:
+		case GlobalBroadcast:
 			for client := range Clients {
 				err := client.WriteJSON(msg.Content)
 				if err != nil {
@@ -59,14 +52,14 @@ func HandleMessages() {
 					delete(Clients, client)
 				}
 			}
-		case entities.ClientSpecific:
+		case ClientSpecific:
 			err := msg.Client.WriteJSON(msg.Content)
 			if err != nil {
 				log.Println("Write error:", err)
 				msg.Client.Close()
 				delete(Clients, msg.Client)
 			}
-		case entities.RoomBroadcast:
+		case RoomBroadcast:
 			room, exists := Rooms[msg.RoomName]
 			if !exists {
 				log.Println("Room not found:", msg.RoomName)

@@ -9,8 +9,6 @@ type Rooms = {
   roomName: Room;
 };
 
-type EventType = "join" | "message";
-
 type JoinEventData = {
   roomName: string;
   token: string;
@@ -21,9 +19,20 @@ type MessageEventData = {
   body: string;
 };
 
-type Event<T extends EventType = EventType> = T extends "join"
-  ? { eventType: "join"; data: JoinEventData }
-  : { eventType: "message"; data: MessageEventData };
+type Error = {
+  code: string;
+  message: string;
+};
+
+type ErrorEventData = {
+  code: string;
+  message: string;
+} & Error;
+
+type ServerEvent =
+  | { eventType: "room_joined"; data: JoinEventData }
+  | { eventType: "message_received"; data: MessageEventData }
+  | { eventType: "error"; data: ErrorEventData };
 
 type Message = {
   author: string;
@@ -38,6 +47,7 @@ function App() {
   const [createRoomName, setCreateRoomName] = useState<string>("");
   const [currentRoom, setCurrentRoom] = useState<string>("");
   const [username, setUsername] = useState<string>("");
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     const randomString = Math.random().toString(36).substring(2, 10);
@@ -50,13 +60,13 @@ function App() {
 
     socket.onmessage = (event: MessageEvent) => {
       try {
-        const eventData: Event = JSON.parse(event.data);
-
+        const eventData: ServerEvent = JSON.parse(event.data);
+        console.log(eventData);
         switch (eventData.eventType) {
-          case "join":
+          case "room_joined":
             setCurrentRoom(eventData.data.roomName);
             break;
-          case "message":
+          case "message_received":
             setMessages((prev) => [
               ...prev,
               {
@@ -65,6 +75,9 @@ function App() {
                 id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
               },
             ]);
+            break;
+          case "error":
+            setError(eventData.data);
             break;
           default:
         }
@@ -83,7 +96,7 @@ function App() {
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(
         JSON.stringify({
-          eventType: "join",
+          eventType: "join_room",
           data: {
             roomName,
             username: username,
@@ -94,9 +107,17 @@ function App() {
   };
 
   const createRoom = async () => {
-    await axios.post("http://localhost:8080/rooms/create", {
-      roomName: createRoomName,
-    });
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(
+        JSON.stringify({
+          eventType: "create_room",
+          data: {
+            roomName: createRoomName,
+            username: username,
+          },
+        })
+      );
+    }
 
     fetchRooms();
   };
@@ -110,7 +131,7 @@ function App() {
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(
         JSON.stringify({
-          eventType: "message",
+          eventType: "send_message",
           data: {
             roomName: currentRoom,
             username: username,
@@ -122,7 +143,12 @@ function App() {
   };
 
   return (
-    <div className="flex gap-10  justify-center w-screen min-h-screen ">
+    <div className="flex gap-10  justify-center relative w-screen min-h-screen ">
+      {error && (
+        <div className="text-red-800 absolute bg-amber-50 top-10">
+          {error.code}:{error.message}
+        </div>
+      )}
       <div className="mt-40 flex gap-10">
         <div>
           <div className="flex justify-between">
