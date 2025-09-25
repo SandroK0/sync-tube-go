@@ -3,9 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-
-	"github.com/SandroK0/sync-tube-go/backend/entities"
-	"github.com/gorilla/websocket"
 )
 
 type EventType string
@@ -15,9 +12,17 @@ const (
 	MessageEvent EventType = "message"
 )
 
-type Event struct {
+type ClientEvent struct {
 	EventType EventType       `json:"eventType"`
 	Data      json.RawMessage `json:"data"`
+}
+
+func NewClientEvent(msg []byte) (*ClientEvent, error) {
+	var event ClientEvent
+	if err := json.Unmarshal(msg, &event); err != nil {
+		return nil, err
+	}
+	return &event, nil
 }
 
 type CommonEventData struct {
@@ -34,88 +39,58 @@ type MessageEventData struct {
 	Body string `json:"body"`
 }
 
-func getRoom(roomName string) (*entities.Room, error) {
-	room, exists := Rooms[roomName]
-	if !exists {
-		return nil, fmt.Errorf("room not found: %s", roomName)
-	}
-	return room, nil
+type ServerEvent struct {
+	EventType EventType `json:"eventType"`
+	Data      any       `json:"data"`
 }
 
-func NewEvent(msg []byte) (*Event, error) {
-	var event Event
-	if err := json.Unmarshal(msg, &event); err != nil {
-		return nil, err
-	}
-	return &event, nil
+type JoinEventResponseData struct {
+	Token    string `json:"token"`
+	RoomName string `json:"roomName"`
 }
 
-func HandleEvents(event Event, ws *websocket.Conn) {
+func NewJoinEventResponse(token, roomName string) ServerEvent {
 
-	jsonData, err := json.Marshal(event)
-	if err != nil {
-		HandleEventError(err, "marshaling event")
-		return
+	joinEventResponseData := JoinEventResponseData{Token: token,
+		RoomName: roomName}
+
+	return ServerEvent{
+		EventType: JoinEvent,
+		Data:      joinEventResponseData,
 	}
+}
 
+type MessageEventResponseData struct {
+	Username string `json:"username"`
+	Body     string `json:"body"`
+}
+
+func NewMessageEventResponse(username, body string) ServerEvent {
+
+	messageEventResponseData := MessageEventResponseData{Username: username,
+		Body: body}
+
+	return ServerEvent{
+		EventType: MessageEvent,
+		Data:      messageEventResponseData,
+	}
+}
+
+func UnmarshalClientEventData(event ClientEvent) (any, error) {
 	switch event.EventType {
 	case JoinEvent:
-
-		var joinData JoinEventData
-		if err := json.Unmarshal(event.Data, &joinData); err != nil {
-			HandleEventError(err, "unmarshaling join event")
-			return
+		var data JoinEventData
+		if err := json.Unmarshal(event.Data, &data); err != nil {
+			return nil, err
 		}
-
-		if joinData.RoomName == "" || joinData.Username == "" {
-			HandleEventError(fmt.Errorf("missing roomName or username"), "join event")
-			return
-		}
-
-		room, err := getRoom(joinData.RoomName)
-		if err != nil {
-			HandleEventError(err, "join event")
-			return
-		}
-
-		user := entities.NewUser(joinData.Username, ws)
-		room.AddUser(user)
-
-		msg, err := entities.NewClientMessage(ws, jsonData)
-		if err != nil {
-			HandleEventError(err, "creating client message")
-			return
-		}
-
-		Messages <- msg
-
+		return data, nil
 	case MessageEvent:
-		var messageData MessageEventData
-		if err := json.Unmarshal(event.Data, &messageData); err != nil {
-			HandleEventError(err, "unmarshaling message event")
-			return
+		var data MessageEventData
+		if err := json.Unmarshal(event.Data, &data); err != nil {
+			return nil, err
 		}
-
-		if messageData.RoomName == "" || messageData.Username == "" || messageData.Body == "" {
-			HandleEventError(fmt.Errorf("missing roomName, username, or body"), "message event")
-			return
-		}
-
-		room, err := getRoom(messageData.RoomName)
-		if err != nil {
-			HandleEventError(err, "message event")
-			return
-		}
-
-		msg, err := entities.NewRoomMessage(room.Name, jsonData)
-		if err != nil {
-			HandleEventError(err, "creating room message")
-			return
-		}
-
-		Messages <- msg
+		return data, nil
 	default:
-		HandleEventError(fmt.Errorf("unknown event type: %s", event.EventType), "handling event")
-
+		return nil, fmt.Errorf("unknown event type: %s", event.EventType)
 	}
 }

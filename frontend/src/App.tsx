@@ -13,6 +13,7 @@ type EventType = "join" | "message";
 
 type JoinEventData = {
   roomName: string;
+  token: string;
 };
 
 type MessageEventData = {
@@ -50,9 +51,10 @@ function App() {
     socket.onmessage = (event: MessageEvent) => {
       try {
         const eventData: Event = JSON.parse(event.data);
+
         switch (eventData.eventType) {
           case "join":
-            setCurrentRoom(eventData.data.roomName); 
+            setCurrentRoom(eventData.data.roomName);
             break;
           case "message":
             setMessages((prev) => [
@@ -151,7 +153,7 @@ function App() {
           <h1 className="p-2 font-medium">Messages</h1>
           <div className="flex flex-col gap-5 border rounded w-100 h-100 p-5 mt-5">
             {messages.map((message: Message) => (
-              <p>
+              <p key={message.id}>
                 {message.author}:{message.body}
               </p>
             ))}

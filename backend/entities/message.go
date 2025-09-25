@@ -18,10 +18,10 @@ type Message struct {
 	Type     MessageType
 	Client   *websocket.Conn // For client-specific messages
 	RoomName string          // For room-specific messages
-	Content  []byte
+	Content  any
 }
 
-func NewClientMessage(client *websocket.Conn, content []byte) (*Message, error) {
+func NewClientMessage(client *websocket.Conn, content any) (*Message, error) {
 	if client == nil {
 		return nil, errors.New("client connection cannot be nil")
 	}
@@ -32,9 +32,9 @@ func NewClientMessage(client *websocket.Conn, content []byte) (*Message, error) 
 	}, nil
 }
 
-func NewRoomMessage(roomName string, content []byte) (*Message, error) {
+func NewRoomMessage(roomName string, content any) (*Message, error) {
 	if roomName == "" {
-		return nil, errors.New("roomID cannot be empty")
+		return nil, errors.New("roomName cannot be empty")
 	}
 	return &Message{
 		Type:     RoomBroadcast,
@@ -43,7 +43,7 @@ func NewRoomMessage(roomName string, content []byte) (*Message, error) {
 	}, nil
 }
 
-func NewBroadcastMessage(content []byte) (*Message, error) {
+func NewBroadcastMessage(content any) (*Message, error) {
 	return &Message{
 		Type:    GlobalBroadcast,
 		Content: content,

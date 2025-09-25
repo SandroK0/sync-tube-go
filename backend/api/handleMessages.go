@@ -36,7 +36,7 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		event, err := NewEvent(msg)
+		event, err := NewClientEvent(msg)
 		if err != nil {
 			log.Println(err)
 			break
@@ -52,7 +52,7 @@ func HandleMessages() {
 		switch msg.Type {
 		case entities.GlobalBroadcast:
 			for client := range Clients {
-				err := client.WriteMessage(websocket.TextMessage, msg.Content)
+				err := client.WriteJSON(msg.Content)
 				if err != nil {
 					log.Println("Write error:", err)
 					client.Close()
@@ -60,7 +60,7 @@ func HandleMessages() {
 				}
 			}
 		case entities.ClientSpecific:
-			err := msg.Client.WriteMessage(websocket.TextMessage, msg.Content)
+			err := msg.Client.WriteJSON(msg.Content)
 			if err != nil {
 				log.Println("Write error:", err)
 				msg.Client.Close()
@@ -74,7 +74,7 @@ func HandleMessages() {
 			}
 
 			for _, user := range room.Users {
-				err := user.Conn.WriteMessage(websocket.TextMessage, msg.Content)
+				err := user.Conn.WriteJSON(msg.Content)
 				if err != nil {
 					log.Println("Write error:", err)
 					user.Conn.Close()
@@ -83,6 +83,5 @@ func HandleMessages() {
 			}
 		}
 
-		log.Println(string(msg.Content))
 	}
 }

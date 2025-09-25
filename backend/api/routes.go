@@ -39,7 +39,7 @@ func CreateRoomHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	roomName, ok := data["roomName"].(string)
-	if !ok {
+	if !ok || roomName == "" {
 		log.Printf("Invalid or missing roomName")
 		http.Error(w, "Bad request: roomName must be a string", http.StatusBadRequest)
 		return
