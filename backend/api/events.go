@@ -8,16 +8,19 @@ import (
 type ClientEventType string
 
 const (
-	JoinRoom    ClientEventType = "join_room"
-	CreateRoom  ClientEventType = "create_room"
-	SendMessage ClientEventType = "send_message"
+	CreateRoom    ClientEventType = "create_room"
+	JoinRoom      ClientEventType = "join_room"
+	ReconnectRoom ClientEventType = "reconnect_room"
+	LeaveRoom     ClientEventType = "leave_room"
+	SendMessage   ClientEventType = "send_message"
 )
 
 type ServerEventType string
 
 const (
-	RoomJoined      ServerEventType = "room_joined"
 	RoomCreated     ServerEventType = "room_created"
+	RoomJoined      ServerEventType = "room_joined"
+	RoomLeft        ServerEventType = "room_left"
 	MessageReceived ServerEventType = "message_received"
 	Error           ServerEventType = "error"
 )
@@ -44,6 +47,14 @@ type JoinRoomEventData struct {
 	CommonEventData
 }
 
+type ReconnectRoomEventData struct {
+	Token string `json:"token"`
+}
+
+type LeaveRoomEventData struct {
+	CommonEventData
+	Token string `json:"token"`
+}
 type CreateRoomEventData struct {
 	CommonEventData
 }
@@ -88,6 +99,22 @@ func RoomJoinedEvent(token, roomName string) ServerEvent {
 	}
 }
 
+type RoomLeftEventData struct {
+	Token    string `json:"token"`
+	RoomName string `json:"roomName"`
+}
+
+func RoomLeftEvent(token, roomName string) ServerEvent {
+
+	data := RoomLeftEventData{Token: token,
+		RoomName: roomName}
+
+	return ServerEvent{
+		EventType: RoomLeft,
+		Data:      data,
+	}
+}
+
 type MessageReceivedEventData struct {
 	Username string `json:"username"`
 	Body     string `json:"body"`
@@ -120,20 +147,32 @@ func RoomCreatedEvent(roomName, token string) ServerEvent {
 
 func UnmarshalClientEventData(event ClientEvent) (any, error) {
 	switch event.EventType {
+	case CreateRoom:
+		var data CreateRoomEventData
+		if err := json.Unmarshal(event.Data, &data); err != nil {
+			return nil, err
+		}
+		return data, nil
 	case JoinRoom:
 		var data JoinRoomEventData
 		if err := json.Unmarshal(event.Data, &data); err != nil {
 			return nil, err
 		}
 		return data, nil
-	case SendMessage:
-		var data SendMessageEventData
+	case LeaveRoom:
+		var data LeaveRoomEventData
 		if err := json.Unmarshal(event.Data, &data); err != nil {
 			return nil, err
 		}
 		return data, nil
-	case CreateRoom:
-		var data CreateRoomEventData
+	case ReconnectRoom:
+		var data ReconnectRoomEventData
+		if err := json.Unmarshal(event.Data, &data); err != nil {
+			return nil, err
+		}
+		return data, nil
+	case SendMessage:
+		var data SendMessageEventData
 		if err := json.Unmarshal(event.Data, &data); err != nil {
 			return nil, err
 		}

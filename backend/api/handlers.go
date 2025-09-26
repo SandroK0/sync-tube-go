@@ -95,7 +95,22 @@ func HandleEvents(event ClientEvent, ws *websocket.Conn) {
 		}
 
 		user := entities.NewUser(data.Username, ws)
-		room.AddUser(user)
+
+		err = room.AddUser(user)
+		if err != nil {
+			errorEvent := ErrorEvent("UsernameTaken", "User with that name already exists in that room")
+
+			msg, err := NewClientMessage(ws, errorEvent)
+			if err != nil {
+				HandleEventError(err, "creating client message")
+				return
+			}
+
+			Messages <- msg
+			return
+		}
+
+		TokenToRooms[user.Token] = NewUserRoom(user.Name, room.Name)
 
 		roomJoinedEvent := RoomJoinedEvent(user.Token, room.Name)
 
@@ -106,6 +121,69 @@ func HandleEvents(event ClientEvent, ws *websocket.Conn) {
 		}
 
 		Messages <- msg
+	case LeaveRoom:
+
+		data, ok := clientEventData.(LeaveRoomEventData)
+		if !ok {
+			HandleEventError(fmt.Errorf("invalid event data type for LeaveRoom"), "type assertion")
+			return
+		}
+
+		if data.RoomName == "" || data.Username == "" || data.Token == "" {
+			HandleEventError(fmt.Errorf("missing roomName or username or token"), "leave event")
+			return
+		}
+
+		room, err := getRoom(data.RoomName)
+		if err != nil {
+			HandleEventError(err, "leave event")
+			return
+		}
+
+		room.RemoveUser(data.Token)
+
+		roomLeftEvent := RoomLeftEvent(data.Token, data.RoomName)
+
+		msg, err := NewClientMessage(ws, roomLeftEvent)
+		if err != nil {
+			HandleEventError(err, "creating client message")
+			return
+		}
+
+		Messages <- msg
+	case ReconnectRoom:
+		data, ok := clientEventData.(ReconnectRoomEventData)
+		if !ok {
+			HandleEventError(fmt.Errorf("invalid event data type for ReconnectRoom"), "type assertion")
+			return
+		}
+
+		userRoom, ok := TokenToRooms[data.Token]
+		if !ok {
+			fmt.Println("Invalid token:", data.Token)
+			return
+		}
+
+		room, err := getRoom(userRoom.RoomName)
+		if err != nil {
+			HandleEventError(err, "reconnect_room event")
+			return
+		}
+
+		user := room.GetUserByToken(data.Token)
+		if user == nil {
+			errorEvent := ErrorEvent("InvalidToken", "Token is invalid")
+
+			msg, err := NewClientMessage(ws, errorEvent)
+			if err != nil {
+				HandleEventError(err, "creating client message")
+				return
+			}
+
+			Messages <- msg
+		}
+
+		user.Conn = ws
 
 	case SendMessage:
 

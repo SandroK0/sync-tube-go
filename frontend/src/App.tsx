@@ -49,6 +49,25 @@ function App() {
   const [username, setUsername] = useState<string>("");
   const [error, setError] = useState<Error | null>(null);
 
+  const tryReconnect = () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.error("No token found for reconnection");
+      return;
+    }
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(
+        JSON.stringify({
+          eventType: "reconnect",
+          data: {
+            token,
+          },
+        }),
+      );
+    }
+  };
+
   useEffect(() => {
     const randomString = Math.random().toString(36).substring(2, 10);
     setUsername(randomString);
@@ -64,6 +83,8 @@ function App() {
         console.log(eventData);
         switch (eventData.eventType) {
           case "room_joined":
+            console.log(eventData.data.token);
+            localStorage.setItem("token", eventData.data.token);
             setCurrentRoom(eventData.data.roomName);
             break;
           case "message_received":
@@ -101,7 +122,7 @@ function App() {
             roomName,
             username: username,
           },
-        })
+        }),
       );
     }
   };
@@ -115,13 +136,35 @@ function App() {
             roomName: createRoomName,
             username: username,
           },
-        })
+        }),
       );
     }
 
     fetchRooms();
   };
+  const leaveRoom = async () => {
+    const token = localStorage.getItem("token");
 
+    if (!token) {
+      console.error("no token");
+      return;
+    }
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(
+        JSON.stringify({
+          eventType: "leave_room",
+          data: {
+            roomName: createRoomName,
+            username: username,
+            token,
+          },
+        }),
+      );
+    }
+
+    fetchRooms();
+  };
   const fetchRooms = async () => {
     const response = await axios.get("http://localhost:8080/rooms");
     setRooms(response.data);
@@ -137,7 +180,7 @@ function App() {
             username: username,
             body: messageBody,
           },
-        })
+        }),
       );
     }
   };
@@ -159,6 +202,7 @@ function App() {
               value={createRoomName}
             />
             <button onClick={createRoom}>Create Room</button>
+            <button onClick={leaveRoom}>Leave Room</button>
           </div>
           <div className="flex flex-col gap-2 border rounded w-100 h-100 mt-5">
             {rooms &&
