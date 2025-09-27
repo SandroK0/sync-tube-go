@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/SandroK0/sync-tube-go/backend/entities"
+	"github.com/SandroK0/chat-rooms/backend/entities"
 	"github.com/gorilla/websocket"
 )
 

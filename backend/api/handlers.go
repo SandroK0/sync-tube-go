@@ -3,7 +3,7 @@ package api
 import (
 	"fmt"
 
-	"github.com/SandroK0/sync-tube-go/backend/entities"
+	"github.com/SandroK0/chat-rooms/backend/entities"
 	"github.com/gorilla/websocket"
 )
 
@@ -57,6 +57,8 @@ func HandleEvents(event ClientEvent, ws *websocket.Conn) {
 
 		user := entities.NewUser(data.Username, ws)
 		room.AddUser(user)
+
+		TokenToRooms[user.Token] = NewUserRoom(user.Name, room.Name)
 
 		roomCreatedEvent := RoomCreatedEvent(data.RoomName, user.Token)
 		msg1, err := NewClientMessage(ws, roomCreatedEvent)
@@ -152,6 +154,7 @@ func HandleEvents(event ClientEvent, ws *websocket.Conn) {
 
 		Messages <- msg
 	case ReconnectRoom:
+
 		data, ok := clientEventData.(ReconnectRoomEventData)
 		if !ok {
 			HandleEventError(fmt.Errorf("invalid event data type for ReconnectRoom"), "type assertion")
@@ -184,6 +187,15 @@ func HandleEvents(event ClientEvent, ws *websocket.Conn) {
 		}
 
 		user.Conn = ws
+		roomJoinedEvent := RoomReconnectedEvent(user.Token, room.Name, user.Name)
+
+		msg, err := NewClientMessage(ws, roomJoinedEvent)
+		if err != nil {
+			HandleEventError(err, "creating client message")
+			return
+		}
+
+		Messages <- msg
 
 	case SendMessage:
 

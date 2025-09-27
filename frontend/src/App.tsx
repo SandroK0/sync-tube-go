@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Room = {
   name: string;
@@ -19,6 +19,12 @@ type MessageEventData = {
   body: string;
 };
 
+type RoomReconnectedEventData = {
+  roomName: string;
+  token: string;
+  username: string;
+};
+
 type Error = {
   code: string;
   message: string;
@@ -32,6 +38,7 @@ type ErrorEventData = {
 type ServerEvent =
   | { eventType: "room_joined"; data: JoinEventData }
   | { eventType: "message_received"; data: MessageEventData }
+  | { eventType: "room_reconnected"; data: RoomReconnectedEventData }
   | { eventType: "error"; data: ErrorEventData };
 
 type Message = {
@@ -49,43 +56,38 @@ function App() {
   const [username, setUsername] = useState<string>("");
   const [error, setError] = useState<Error | null>(null);
 
-  const tryReconnect = () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      console.error("No token found for reconnection");
-      return;
-    }
-
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(
-        JSON.stringify({
-          eventType: "reconnect",
-          data: {
-            token,
-          },
-        }),
-      );
-    }
-  };
+  const usernameInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    const randomString = Math.random().toString(36).substring(2, 10);
-    setUsername(randomString);
-
     const socket = new WebSocket("ws://localhost:8080/ws");
     setWs(socket);
 
-    socket.onopen = () => console.log("Connected to server");
+    socket.onopen = () => {
+      console.log("Connected to server");
+
+      // attempt reconnect immediately after open
+      const token = localStorage.getItem("token");
+      if (token) {
+        socket.send(
+          JSON.stringify({
+            eventType: "reconnect_room",
+            data: { token },
+          }),
+        );
+      }
+    };
 
     socket.onmessage = (event: MessageEvent) => {
       try {
         const eventData: ServerEvent = JSON.parse(event.data);
-        console.log(eventData);
         switch (eventData.eventType) {
           case "room_joined":
-            console.log(eventData.data.token);
             localStorage.setItem("token", eventData.data.token);
             setCurrentRoom(eventData.data.roomName);
+            break;
+          case "room_reconnected":
+            setCurrentRoom(eventData.data.roomName);
+            setUsername(eventData.data.username);
             break;
           case "message_received":
             setMessages((prev) => [
@@ -186,13 +188,31 @@ function App() {
   };
 
   return (
-    <div className="flex gap-10  justify-center relative w-screen min-h-screen ">
+    <div className="flex gap-10 flex-col items-center justify-center relative w-screen min-h-screen ">
       {error && (
         <div className="text-red-800 absolute bg-amber-50 top-10">
           {error.code}:{error.message}
         </div>
       )}
-      <div className="mt-40 flex gap-10">
+      <div className="flex items-center gap-5">
+        <input
+          placeholder="set username"
+          className="focus:ring-0 outline-0 border rounded p-2"
+          ref={usernameInputRef}
+        ></input>
+        <button
+          disabled={username !== ""}
+          onClick={() => {
+            if (usernameInputRef.current) {
+              setUsername(usernameInputRef.current.value);
+            }
+          }}
+          className="disabled:opacity-50"
+        >
+          Set
+        </button>
+      </div>
+      <div className="mt-40 flex gap-10 ">
         <div>
           <div className="flex justify-between">
             <input

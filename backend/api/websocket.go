@@ -34,8 +34,10 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			break
 		}
+
 		HandleEvents(*event, ws)
 	}
+
 }
 
 func HandleMessages() {

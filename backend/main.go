@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/SandroK0/sync-tube-go/backend/api"
+	"github.com/SandroK0/chat-rooms/backend/api"
 	"github.com/rs/cors"
 )
 

@@ -1,4 +1,4 @@
-module github.com/SandroK0/sync-tube-go/backend
+module github.com/SandroK0/chat-rooms/backend
 
 go 1.22.2
 

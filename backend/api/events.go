@@ -21,6 +21,7 @@ const (
 	RoomCreated     ServerEventType = "room_created"
 	RoomJoined      ServerEventType = "room_joined"
 	RoomLeft        ServerEventType = "room_left"
+	RoomReconnected ServerEventType = "room_reconnected"
 	MessageReceived ServerEventType = "message_received"
 	Error           ServerEventType = "error"
 )
@@ -141,6 +142,21 @@ func RoomCreatedEvent(roomName, token string) ServerEvent {
 
 	return ServerEvent{
 		EventType: RoomCreated,
+		Data:      data,
+	}
+}
+
+type RoomReconnectedEventData struct {
+	Token    string `json:"token"`
+	RoomName string `json:"roomName"`
+	Username string `json:"username"`
+}
+
+func RoomReconnectedEvent(token, roomName, username string) ServerEvent {
+	data := RoomReconnectedEventData{Token: token, RoomName: roomName, Username: username}
+
+	return ServerEvent{
+		EventType: RoomReconnected,
 		Data:      data,
 	}
 }
