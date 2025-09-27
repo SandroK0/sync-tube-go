@@ -70,18 +70,16 @@ type ServerEvent struct {
 	Data      any             `json:"data"`
 }
 
+func NewServerEvent(eventType ServerEventType, data any) ServerEvent {
+	return ServerEvent{
+		EventType: eventType,
+		Data:      data,
+	}
+}
+
 type ErrorEventData struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
-}
-
-func ErrorEvent(code, message string) ServerEvent {
-	data := ErrorEventData{Code: code, Message: message}
-
-	return ServerEvent{
-		EventType: Error,
-		Data:      data,
-	}
 }
 
 type RoomJoinedEventData struct {
@@ -89,31 +87,9 @@ type RoomJoinedEventData struct {
 	RoomName string `json:"roomName"`
 }
 
-func RoomJoinedEvent(token, roomName string) ServerEvent {
-
-	data := RoomJoinedEventData{Token: token,
-		RoomName: roomName}
-
-	return ServerEvent{
-		EventType: RoomJoined,
-		Data:      data,
-	}
-}
-
 type RoomLeftEventData struct {
 	Token    string `json:"token"`
 	RoomName string `json:"roomName"`
-}
-
-func RoomLeftEvent(token, roomName string) ServerEvent {
-
-	data := RoomLeftEventData{Token: token,
-		RoomName: roomName}
-
-	return ServerEvent{
-		EventType: RoomLeft,
-		Data:      data,
-	}
 }
 
 type MessageReceivedEventData struct {
@@ -121,44 +97,15 @@ type MessageReceivedEventData struct {
 	Body     string `json:"body"`
 }
 
-func MessageReceivedEvent(username, body string) ServerEvent {
-
-	data := MessageReceivedEventData{Username: username,
-		Body: body}
-
-	return ServerEvent{
-		EventType: MessageReceived,
-		Data:      data,
-	}
-}
-
 type RoomCreatedEventData struct {
 	Token    string `json:"token"`
 	RoomName string `json:"roomName"`
-}
-
-func RoomCreatedEvent(roomName, token string) ServerEvent {
-	data := RoomCreatedEventData{Token: token, RoomName: roomName}
-
-	return ServerEvent{
-		EventType: RoomCreated,
-		Data:      data,
-	}
 }
 
 type RoomReconnectedEventData struct {
 	Token    string `json:"token"`
 	RoomName string `json:"roomName"`
 	Username string `json:"username"`
-}
-
-func RoomReconnectedEvent(token, roomName, username string) ServerEvent {
-	data := RoomReconnectedEventData{Token: token, RoomName: roomName, Username: username}
-
-	return ServerEvent{
-		EventType: RoomReconnected,
-		Data:      data,
-	}
 }
 
 func UnmarshalClientEventData(event ClientEvent) (any, error) {

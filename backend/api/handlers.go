@@ -39,7 +39,8 @@ func HandleEvents(event ClientEvent, ws *websocket.Conn) {
 
 		if _, exists := Rooms[data.RoomName]; exists {
 
-			errorEvent := ErrorEvent("RoomAlreadyExists", "Room name is taken")
+			errorData := ErrorEventData{Code: "RoomAlreadyExists", Message: "Room name is taken"}
+			errorEvent := NewServerEvent(Error, errorData)
 
 			msg, err := NewClientMessage(ws, errorEvent)
 			if err != nil {
@@ -60,14 +61,16 @@ func HandleEvents(event ClientEvent, ws *websocket.Conn) {
 
 		TokenToRooms[user.Token] = NewUserRoom(user.Name, room.Name)
 
-		roomCreatedEvent := RoomCreatedEvent(data.RoomName, user.Token)
+		roomCreatedData := RoomCreatedEventData{Token: user.Token, RoomName: data.RoomName}
+		roomCreatedEvent := NewServerEvent(RoomCreated, roomCreatedData)
 		msg1, err := NewClientMessage(ws, roomCreatedEvent)
 		if err != nil {
 			HandleEventError(err, "creating client message for RoomCreatedEvent")
 			return
 		}
 
-		roomJoinedEvent := RoomJoinedEvent(user.Token, room.Name)
+		roomJoinedData := RoomJoinedEventData{Token: user.Token, RoomName: room.Name}
+		roomJoinedEvent := NewServerEvent(RoomJoined, roomJoinedData)
 		msg2, err := NewClientMessage(ws, roomJoinedEvent)
 		if err != nil {
 			HandleEventError(err, "creating client message for RoomJoinedEvent")
@@ -100,7 +103,8 @@ func HandleEvents(event ClientEvent, ws *websocket.Conn) {
 
 		err = room.AddUser(user)
 		if err != nil {
-			errorEvent := ErrorEvent("UsernameTaken", "User with that name already exists in that room")
+			errorData := ErrorEventData{Code: "UsernameTaken", Message: "User with that name already exists in that room"}
+			errorEvent := NewServerEvent(Error, errorData)
 
 			msg, err := NewClientMessage(ws, errorEvent)
 			if err != nil {
@@ -114,7 +118,8 @@ func HandleEvents(event ClientEvent, ws *websocket.Conn) {
 
 		TokenToRooms[user.Token] = NewUserRoom(user.Name, room.Name)
 
-		roomJoinedEvent := RoomJoinedEvent(user.Token, room.Name)
+		roomJoinedData := RoomJoinedEventData{Token: user.Token, RoomName: room.Name}
+		roomJoinedEvent := NewServerEvent(RoomJoined, roomJoinedData)
 
 		msg, err := NewClientMessage(ws, roomJoinedEvent)
 		if err != nil {
@@ -144,7 +149,8 @@ func HandleEvents(event ClientEvent, ws *websocket.Conn) {
 
 		room.RemoveUser(data.Token)
 
-		roomLeftEvent := RoomLeftEvent(data.Token, data.RoomName)
+		roomLeftData := RoomLeftEventData{Token: data.Token, RoomName: data.RoomName}
+		roomLeftEvent := NewServerEvent(RoomLeft, roomLeftData)
 
 		msg, err := NewClientMessage(ws, roomLeftEvent)
 		if err != nil {
@@ -175,7 +181,8 @@ func HandleEvents(event ClientEvent, ws *websocket.Conn) {
 
 		user := room.GetUserByToken(data.Token)
 		if user == nil {
-			errorEvent := ErrorEvent("InvalidToken", "Token is invalid")
+			errorData := ErrorEventData{Code: "InvalidToken", Message: "Token is invalid"}
+			errorEvent := NewServerEvent(Error, errorData)
 
 			msg, err := NewClientMessage(ws, errorEvent)
 			if err != nil {
@@ -187,7 +194,8 @@ func HandleEvents(event ClientEvent, ws *websocket.Conn) {
 		}
 
 		user.Conn = ws
-		roomJoinedEvent := RoomReconnectedEvent(user.Token, room.Name, user.Name)
+		roomReconnectedData := RoomReconnectedEventData{Token: user.Token, RoomName: room.Name, Username: user.Name}
+		roomJoinedEvent := NewServerEvent(RoomReconnected, roomReconnectedData)
 
 		msg, err := NewClientMessage(ws, roomJoinedEvent)
 		if err != nil {
@@ -216,7 +224,8 @@ func HandleEvents(event ClientEvent, ws *websocket.Conn) {
 			return
 		}
 
-		messageReceivedEvent := MessageReceivedEvent(data.Username, data.Body)
+		messageReceivedData := MessageReceivedEventData{Username: data.Username, Body: data.Body}
+		messageReceivedEvent := NewServerEvent(MessageReceived, messageReceivedData)
 		msg, err := NewRoomMessage(room.Name, messageReceivedEvent)
 		if err != nil {
 			HandleEventError(err, "creating room message")
