@@ -15,6 +15,19 @@ func getRoom(roomName string) (*entities.Room, error) {
 	return room, nil
 }
 
+func SendError(Code, Message string, ws *websocket.Conn) {
+	errorData := ErrorEventData{Code: Code, Message: Message}
+	errorEvent := NewServerEvent(Error, errorData)
+
+	msg, err := NewClientMessage(ws, errorEvent)
+	if err != nil {
+		HandleEventError(err, "creating client message")
+		return
+	}
+
+	Messages <- msg
+}
+
 func HandleEvents(event ClientEvent, ws *websocket.Conn) {
 
 	clientEventData, err := UnmarshalClientEventData(event)
@@ -38,17 +51,7 @@ func HandleEvents(event ClientEvent, ws *websocket.Conn) {
 		}
 
 		if _, exists := Rooms[data.RoomName]; exists {
-
-			errorData := ErrorEventData{Code: "RoomAlreadyExists", Message: "Room name is taken"}
-			errorEvent := NewServerEvent(Error, errorData)
-
-			msg, err := NewClientMessage(ws, errorEvent)
-			if err != nil {
-				HandleEventError(err, "creating client message")
-				return
-			}
-
-			Messages <- msg
+			SendError("RoomAlreadyExists", "Room name is taken", ws)
 			return
 		}
 
@@ -103,16 +106,7 @@ func HandleEvents(event ClientEvent, ws *websocket.Conn) {
 
 		err = room.AddUser(user)
 		if err != nil {
-			errorData := ErrorEventData{Code: "UsernameTaken", Message: "User with that name already exists in that room"}
-			errorEvent := NewServerEvent(Error, errorData)
-
-			msg, err := NewClientMessage(ws, errorEvent)
-			if err != nil {
-				HandleEventError(err, "creating client message")
-				return
-			}
-
-			Messages <- msg
+			SendError("UsernameTaken", "User with that name already exists in that room", ws)
 			return
 		}
 
@@ -181,16 +175,7 @@ func HandleEvents(event ClientEvent, ws *websocket.Conn) {
 
 		user := room.GetUserByToken(data.Token)
 		if user == nil {
-			errorData := ErrorEventData{Code: "InvalidToken", Message: "Token is invalid"}
-			errorEvent := NewServerEvent(Error, errorData)
-
-			msg, err := NewClientMessage(ws, errorEvent)
-			if err != nil {
-				HandleEventError(err, "creating client message")
-				return
-			}
-
-			Messages <- msg
+			SendError("InvalidToken", "Token is invalid", ws)
 		}
 
 		user.Conn = ws

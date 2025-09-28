@@ -65,7 +65,6 @@ function App() {
     socket.onopen = () => {
       console.log("Connected to server");
 
-      // attempt reconnect immediately after open
       const token = localStorage.getItem("token");
       if (token) {
         socket.send(
@@ -157,7 +156,7 @@ function App() {
         JSON.stringify({
           eventType: "leave_room",
           data: {
-            roomName: createRoomName,
+            roomName: currentRoom,
             username: username,
             token,
           },
